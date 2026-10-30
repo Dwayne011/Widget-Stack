@@ -130,6 +130,15 @@ Unknowns this spike exists to settle:
 If the relay works, the extra tap in section 3 disappears for everything except
 collections. If it is rejected, the bitmap mirror in section 2 remains the plan.
 
+### Result (2026-10-30, Pixel, Pixel Launcher)
+
+**Relay works.** Three third-party widgets (Digital Wellbeing "Screen time" and
+two others) were nested as cross-package children of the Stack widget's
+`ViewFlipper`. `AppWidgetService` accepted the update and Pixel Launcher
+inflated them with their own resources. Paging with the prev/next controls
+works. Still to confirm: in-place taps on inner buttons, collection widgets,
+a second launcher, resize behaviour, and the Shizuku `grantbind` path.
+
 ## 4. Where Shizuku helps
 
 Shizuku runs our code with the `shell` uid (2000). The AOSP Shell package holds
