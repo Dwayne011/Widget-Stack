@@ -17,7 +17,16 @@ import kotlin.math.abs
 object RemoteViewsFlatten {
     private const val S = "flatten"
 
-    fun pick(context: Context, root: RemoteViews, size: SizeF): RemoteViews? = try {
+    fun pick(context: Context, root: RemoteViews, size: SizeF): RemoteViews? {
+        try {
+            return pickInner(context, root, size)
+        } catch (t: Throwable) {
+            SpikeLog.w(S, "could not flatten RemoteViews (hidden API blocked?)", t)
+            return null
+        }
+    }
+
+    private fun pickInner(context: Context, root: RemoteViews, size: SizeF): RemoteViews? {
         var rv: RemoteViews = root
         var hops = 0
         while (hops++ < 4) {
@@ -41,10 +50,7 @@ object RemoteViewsFlatten {
             }
             return rv
         }
-        null
-    } catch (t: Throwable) {
-        SpikeLog.w(S, "could not flatten RemoteViews (hidden API blocked?)", t)
-        null
+        return null
     }
 
     private fun field(rv: RemoteViews, name: String): Any? {
