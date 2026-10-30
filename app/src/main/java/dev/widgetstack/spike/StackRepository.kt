@@ -7,7 +7,14 @@ import android.os.Looper
 import android.widget.RemoteViews
 import java.util.concurrent.ConcurrentHashMap
 
-enum class Mode { RELAY, BITMAP }
+/**
+ * RELAY  : ViewFlipper of the inner widgets' own RemoteViews; prev/next buttons.
+ * SWIPE  : StackView (flick to page) of the same RemoteViews via RemoteCollectionItems.
+ *          Tests whether swipe is usable and whether inner clicks survive being
+ *          collection items.
+ * BITMAP : ViewFlipper of off-screen renders; the fallback.
+ */
+enum class Mode { RELAY, SWIPE, BITMAP }
 
 /**
  * Process-wide state: which inner widget ids are in the stack, the host, the

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true">
+
+    <!-- The only swipeable container RemoteViews allows. Pages come from a RemoteCollectionItems adapter. -->
+    <StackView
+        android:id="@+id/stack"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:loopViews="true" />
+
+    <TextView
+        android:id="@+id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:padding="12dp"
+        android:text="@string/empty_stack"
+        android:textColor="#FFFFFF"
+        android:background="#66000000" />
+
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/chip_bg"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp">
+
+        <TextView
+            android:id="@+id/page_label"
+            android:layout_width="wrap_content"
+            android:layout_height="24dp"
+            android:gravity="center"
+            android:minWidth="40dp"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp" />
+
+        <ImageButton
+            android:id="@+id/settings"
+            android:layout_width="28dp"
+            android:layout_height="24dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Stack settings"
+            android:src="@android:drawable/ic_menu_preferences" />
+    </LinearLayout>
+</FrameLayout>

@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
+import android.widget.RemoteViews.RemoteCollectionItems
 
 /**
  * Builds the Stack widget's RemoteViews and pushes it to every placed instance.
@@ -56,6 +57,7 @@ object StackRenderer {
     }
 
     private fun build(context: Context, stackId: Int, size: SizeF): RemoteViews {
+        if (StackRepository.mode() == Mode.SWIPE) return buildSwipe(context, stackId)
         val root = RemoteViews(context.packageName, R.layout.widget_stack)
         root.removeAllViews(R.id.flipper)
         val ids = StackRepository.ids()
@@ -66,16 +68,12 @@ object StackRenderer {
         root.setTextViewText(R.id.page_label, if (ids.isEmpty()) "0/0" else "${page + 1}/${ids.size} ${mode.name.lowercase()}")
         root.setOnClickPendingIntent(R.id.prev, broadcast(context, StackWidgetProvider.ACTION_PREV, stackId))
         root.setOnClickPendingIntent(R.id.next, broadcast(context, StackWidgetProvider.ACTION_NEXT, stackId))
-        root.setOnClickPendingIntent(R.id.settings, PendingIntent.getActivity(
-            context, stackId,
-            Intent(context, MainActivity::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, stackId).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        ))
+        root.setOnClickPendingIntent(R.id.settings, settingsIntent(context, stackId))
 
         ids.forEachIndexed { index, innerId ->
             val child = try {
                 when (mode) {
-                    Mode.RELAY -> relayPage(innerId, size)
+                    Mode.RELAY, Mode.SWIPE -> relayPage(innerId, size)
                     Mode.BITMAP -> bitmapPage(context, innerId, size)
                 }
             } catch (t: Throwable) {
@@ -87,6 +85,40 @@ object StackRenderer {
         if (ids.isNotEmpty()) root.setDisplayedChild(R.id.flipper, page)
         return root
     }
+
+    // ---- SWIPE (StackView) --------------------------------------------
+
+    private fun buildSwipe(context: Context, stackId: Int): RemoteViews {
+        val root = RemoteViews(context.packageName, R.layout.widget_stack_sv)
+        val ids = StackRepository.ids()
+        root.setViewVisibility(R.id.empty, if (ids.isEmpty()) View.VISIBLE else View.GONE)
+        root.setTextViewText(R.id.page_label, "${ids.size} swipe")
+        root.setOnClickPendingIntent(R.id.settings, settingsIntent(context, stackId))
+
+        val builder = RemoteCollectionItems.Builder()
+            .setHasStableIds(true)
+            // Every inner widget has its own layout, so each page is its own view type.
+            .setViewTypeCount(ids.size.coerceAtLeast(1))
+        ids.forEachIndexed { index, innerId ->
+            val page = try { relayPage(innerId, SizeF(0f, 0f)) } catch (t: Throwable) {
+                SpikeLog.e(S, "swipe page $index (inner id=$innerId) failed", t)
+                errorPage(context, "inner $innerId: ${t.javaClass.simpleName}: ${t.message}")
+            }
+            SpikeLog.d(S, "swipe: item $index inner=$innerId pkg=${page.`package`} layout=0x${Integer.toHexString(page.layoutId)}")
+            builder.addItem(innerId.toLong(), page)
+        }
+        SpikeLog.timed(S, "setRemoteAdapter(stack, ${ids.size} items)") { root.setRemoteAdapter(R.id.stack, builder.build()) }
+        // Collection items may only fire fill-in intents against this template; this logs any that reach us.
+        root.setPendingIntentTemplate(R.id.stack, broadcast(context, StackWidgetProvider.ACTION_TAP, stackId))
+        SpikeLog.i(S, "swipe: if inner buttons do nothing in this mode, Android dropped their PendingIntents because they are collection items (expected risk)")
+        return root
+    }
+
+    private fun settingsIntent(context: Context, stackId: Int): PendingIntent = PendingIntent.getActivity(
+        context, stackId,
+        Intent(context, MainActivity::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, stackId).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     // ---- RELAY ---------------------------------------------------------
 

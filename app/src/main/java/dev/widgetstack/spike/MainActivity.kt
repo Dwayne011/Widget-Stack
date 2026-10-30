@@ -57,7 +57,8 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btn_add).setOnClickListener { pickProvider() }
         findViewById<Button>(R.id.btn_mode).setOnClickListener {
-            StackRepository.setMode(if (StackRepository.mode() == Mode.RELAY) Mode.BITMAP else Mode.RELAY)
+            val all = Mode.values()
+            StackRepository.setMode(all[(StackRepository.mode().ordinal + 1) % all.size])
             refreshStatus()
         }
         findViewById<Button>(R.id.btn_clear).setOnClickListener { StackRepository.removeAll(); refreshStatus() }
