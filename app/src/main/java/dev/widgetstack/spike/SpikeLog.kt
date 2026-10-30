@@ -71,7 +71,7 @@ object SpikeLog {
             lines.addLast(line)
             while (lines.size > MAX_LINES) lines.removeFirst()
         }
-        try { file?.appendText(line + "\n") } catch (_: Exception) { /* never let logging crash the app */ }
+        try { file?.appendText(line + "\n") } catch (ignored: Exception) { /* never let logging crash the app */ }
         listeners.forEach { it() }
     }
 }

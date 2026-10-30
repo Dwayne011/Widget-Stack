@@ -51,12 +51,12 @@ class RelayHostView(context: Context, private val id: Int) : AppWidgetHostView(c
                 f.isAccessible = true
                 val sized = f.get(rv) as? List<*>
                 if (sized != null) sb.append(" sizedVariants=${sized.size}")
-            } catch (_: Throwable) { }
+            } catch (ignored: Throwable) { }
             try {
                 val f = RemoteViews::class.java.getDeclaredField("mLandscape")
                 f.isAccessible = true
                 if (f.get(rv) != null) sb.append(" hasLandscape/Portrait")
-            } catch (_: Throwable) { }
+            } catch (ignored: Throwable) { }
             return sb.toString()
         }
     }
