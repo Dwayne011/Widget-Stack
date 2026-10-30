@@ -11,6 +11,15 @@
         android:name="android.permission.BIND_APPWIDGET"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Android 11+ package visibility: without this, getInstalledProviders()
+         only returns providers from packages that are visible to every app
+         (system UI, Play Store, ...). Launchers declare the same query. -->
+    <queries>
+        <intent>
+            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".StackApp"
         android:allowBackup="false"
