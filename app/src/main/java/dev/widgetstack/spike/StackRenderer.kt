@@ -72,9 +72,13 @@ object StackRenderer {
 
         ids.forEachIndexed { index, innerId ->
             val child = try {
-                when (mode) {
-                    Mode.RELAY, Mode.SWIPE -> relayPage(innerId, size)
-                    Mode.BITMAP -> bitmapPage(context, innerId, size)
+                when {
+                    mode == Mode.BITMAP -> bitmapPage(context, innerId, size, collectionItem = false)
+                    StackRepository.views[innerId]?.isCollection == true -> {
+                        SpikeLog.i(S, "page $index inner=$innerId is a collection widget; mirroring as bitmap instead of relaying")
+                        bitmapPage(context, innerId, size, collectionItem = false)
+                    }
+                    else -> relayPage(innerId, size)
                 }
             } catch (t: Throwable) {
                 SpikeLog.e(S, "page $index (inner id=$innerId, $mode) failed", t)
@@ -100,7 +104,12 @@ object StackRenderer {
             // Every inner widget has its own layout, so each page is its own view type.
             .setViewTypeCount(ids.size.coerceAtLeast(1))
         ids.forEachIndexed { index, innerId ->
-            val page = try { relayPage(innerId, SizeF(0f, 0f)) } catch (t: Throwable) {
+            val page = try {
+                if (StackRepository.views[innerId]?.isCollection == true) {
+                    SpikeLog.i(S, "swipe item $index inner=$innerId is a collection widget; mirroring as bitmap")
+                    bitmapPage(context, innerId, sizeOfFirstStack(context), collectionItem = true)
+                } else relayPage(innerId, SizeF(0f, 0f))
+            } catch (t: Throwable) {
                 SpikeLog.e(S, "swipe page $index (inner id=$innerId) failed", t)
                 errorPage(context, "inner $innerId: ${t.javaClass.simpleName}: ${t.message}")
             }
@@ -135,7 +144,14 @@ object StackRenderer {
 
     // ---- BITMAP --------------------------------------------------------
 
-    private fun bitmapPage(context: Context, innerId: Int, size: SizeF): RemoteViews {
+    private fun sizeOfFirstStack(context: Context): SizeF {
+        val mgr = AppWidgetManager.getInstance(context)
+        val id = mgr.getAppWidgetIds(ComponentName(context, StackWidgetProvider::class.java)).firstOrNull() ?: return SizeF(250f, 110f)
+        return sizeOf(mgr.getAppWidgetOptions(id))
+    }
+
+    /** [collectionItem]: pages inside a StackView may only use fill-in intents, not PendingIntents. */
+    private fun bitmapPage(context: Context, innerId: Int, size: SizeF, collectionItem: Boolean): RemoteViews {
         val view = StackRepository.views[innerId]
             ?: throw IllegalStateException("no host view for inner id=$innerId")
         val density = context.resources.displayMetrics.density
@@ -156,7 +172,11 @@ object StackRenderer {
         SpikeLog.d(S, "bitmap inner=$innerId bytes=${bmp.byteCount} (RemoteViews budget is about 1.5x screen pixels x 4 bytes per update)")
         val page = RemoteViews(context.packageName, R.layout.widget_bitmap_page)
         page.setImageViewBitmap(R.id.page_image, bmp)
-        page.setOnClickPendingIntent(R.id.page_image, broadcast(context, StackWidgetProvider.ACTION_TAP, innerId))
+        if (collectionItem) {
+            page.setOnClickFillInIntent(R.id.page_image, Intent().putExtra(StackWidgetProvider.EXTRA_ID, innerId))
+        } else {
+            page.setOnClickPendingIntent(R.id.page_image, broadcast(context, StackWidgetProvider.ACTION_TAP, innerId))
+        }
         return page
     }
 
