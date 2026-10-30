@@ -2,7 +2,6 @@ package dev.widgetstack.spike
 
 import android.Manifest
 import android.app.Activity
-import android.app.AlertDialog
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Intent
@@ -34,6 +33,17 @@ class MainActivity : AppCompatActivity() {
         if (res.resultCode == Activity.RESULT_OK) afterBound(pendingId) else discardPending("user cancelled bind dialog")
     }
 
+    private val pickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        if (res.resultCode != Activity.RESULT_OK) { SpikeLog.i("bind", "picker cancelled"); return@registerForActivityResult }
+        @Suppress("DEPRECATION")
+        val provider = res.data?.getParcelableExtra<android.content.ComponentName>(PickerActivity.EXTRA_PROVIDER)
+        @Suppress("DEPRECATION")
+        val profile = res.data?.getParcelableExtra<android.os.UserHandle>(PickerActivity.EXTRA_PROFILE)
+        val info = mgr.getInstalledProvidersForProfile(profile).firstOrNull { it.provider == provider }
+        if (info == null) { SpikeLog.w("bind", "picked provider $provider not found"); return@registerForActivityResult }
+        bind(info)
+    }
+
     private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         SpikeLog.i("ui", "POST_NOTIFICATIONS granted=$it")
     }
@@ -60,7 +70,21 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        handleConfigureIntent()
         SpikeLog.i("ui", "MainActivity created")
+    }
+
+    /**
+     * When opened as the stack widget's configure activity (launcher long-press
+     * settings, or first placement), the launcher expects RESULT_OK carrying the
+     * widget id, otherwise it deletes the widget. Set it immediately so leaving
+     * with Back still counts as "configured".
+     */
+    private fun handleConfigureIntent() {
+        val id = intent?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        SpikeLog.i("ui", "opened as configure/settings for stack id=$id (action=${intent?.action})")
+        setResult(Activity.RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id))
     }
 
     override fun onResume() {
@@ -75,14 +99,7 @@ class MainActivity : AppCompatActivity() {
     // ---- add widget flow: pick -> allocate -> bind -> configure -> add ----
 
     private fun pickProvider() {
-        val providers = mgr.installedProviders
-            .filter { it.widgetCategory and AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN != 0 }
-            .sortedBy { it.loadLabel(packageManager).lowercase() }
-        SpikeLog.i("bind", "installedProviders=${providers.size}")
-        val labels = providers.map { "${it.loadLabel(packageManager)}\n  ${it.provider.packageName}" }.toTypedArray()
-        AlertDialog.Builder(this).setTitle("Pick a widget to stack")
-            .setItems(labels) { _, which -> bind(providers[which]) }
-            .show()
+        pickerLauncher.launch(Intent(this, PickerActivity::class.java))
     }
 
     private fun bind(info: AppWidgetProviderInfo) {

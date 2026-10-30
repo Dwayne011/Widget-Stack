@@ -66,6 +66,11 @@ object StackRenderer {
         root.setTextViewText(R.id.page_label, if (ids.isEmpty()) "0/0" else "${page + 1}/${ids.size} ${mode.name.lowercase()}")
         root.setOnClickPendingIntent(R.id.prev, broadcast(context, StackWidgetProvider.ACTION_PREV, stackId))
         root.setOnClickPendingIntent(R.id.next, broadcast(context, StackWidgetProvider.ACTION_NEXT, stackId))
+        root.setOnClickPendingIntent(R.id.settings, PendingIntent.getActivity(
+            context, stackId,
+            Intent(context, MainActivity::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, stackId).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        ))
 
         ids.forEachIndexed { index, innerId ->
             val child = try {

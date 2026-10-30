@@ -9,4 +9,6 @@
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"
+    android:configure="dev.widgetstack.spike.MainActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional"
     android:previewLayout="@layout/widget_stack" />

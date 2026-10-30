@@ -34,7 +34,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Launched by the launcher's long-press "settings" action (reconfigurable widget). -->
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
         </activity>
+
+        <activity
+            android:name=".PickerActivity"
+            android:exported="false"
+            android:label="Add widget to stack" />
 
         <!-- The widget users place on the launcher. Each page is another app's widget. -->
         <receiver
