@@ -41,4 +41,6 @@ dependencies {
     // Shizuku: optional privileged path used only for `appwidget grantbind`.
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
+    // Lifts hidden-API reflection restrictions for RemoteViews internals (used by RemoteViewsFlatten).
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
 }

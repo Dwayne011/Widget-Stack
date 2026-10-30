@@ -104,17 +104,32 @@ object StackRenderer {
             // Every inner widget has its own layout, so each page is its own view type.
             .setViewTypeCount(ids.size.coerceAtLeast(1))
         ids.forEachIndexed { index, innerId ->
-            val page = try {
+            val stackSize = sizeOfFirstStack(context)
+            var page = try {
                 if (StackRepository.views[innerId]?.isCollection == true) {
                     SpikeLog.i(S, "swipe item $index inner=$innerId is a collection widget; mirroring as bitmap")
-                    bitmapPage(context, innerId, sizeOfFirstStack(context), collectionItem = true)
-                } else relayPage(innerId, SizeF(0f, 0f))
+                    bitmapPage(context, innerId, stackSize, collectionItem = true)
+                } else {
+                    // Collection items may not carry per-size/orientation layouts: pick the one that fits.
+                    val relayed = relayPage(innerId, stackSize)
+                    RemoteViewsFlatten.pick(context, relayed, stackSize) ?: run {
+                        SpikeLog.w(S, "swipe item $index inner=$innerId: could not pick a single layout; mirroring as bitmap")
+                        bitmapPage(context, innerId, stackSize, collectionItem = true)
+                    }
+                }
             } catch (t: Throwable) {
                 SpikeLog.e(S, "swipe page $index (inner id=$innerId) failed", t)
                 errorPage(context, "inner $innerId: ${t.javaClass.simpleName}: ${t.message}")
             }
             SpikeLog.d(S, "swipe: item $index inner=$innerId pkg=${page.`package`} layout=0x${Integer.toHexString(page.layoutId)}")
-            builder.addItem(innerId.toLong(), page)
+            try {
+                builder.addItem(innerId.toLong(), page)
+            } catch (t: Throwable) {
+                // Typically "cannot specify separate layouts for orientations or sizes" when flattening missed a case.
+                SpikeLog.w(S, "addItem rejected page $index inner=$innerId; mirroring as bitmap instead", t)
+                page = bitmapPage(context, innerId, stackSize, collectionItem = true)
+                builder.addItem(innerId.toLong(), page)
+            }
         }
         SpikeLog.timed(S, "setRemoteAdapter(stack, ${ids.size} items)") { root.setRemoteAdapter(R.id.stack, builder.build()) }
         // Collection items may only fire fill-in intents against this template; this logs any that reach us.
