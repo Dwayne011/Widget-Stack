@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Widget Stack Spike</string>
+    <string name="widget_label">Widget Stack</string>
+    <string name="widget_description">Stacks other widgets in one slot. Spike build.</string>
+    <string name="notif_channel">Widget host</string>
+    <string name="notif_title">Widget Stack host is listening</string>
+    <string name="notif_text">Receiving updates from stacked widgets</string>
+    <string name="empty_stack">Stack is empty. Open the app and add a widget.</string>
+</resources>

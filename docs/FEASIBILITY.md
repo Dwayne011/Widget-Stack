@@ -108,6 +108,28 @@ widget. Options, in order of robustness:
    Shizuku can rescue it (section 4).
 3. Scrolling inside collection widgets only works in mode 1.
 
+## 3b. Workaround under test: relay the RemoteViews instead of a bitmap
+
+The host receives each inner widget's actual `RemoteViews`, not just pixels. If we
+re-publish that object as a nested child of our Stack widget's `ViewFlipper`, the
+launcher inflates the real views: resources resolve from the inner package, and
+every click `PendingIntent` belongs to the original app, so buttons work in place
+with no popup and no background-launch workaround.
+
+Unknowns this spike exists to settle:
+
+- Whether `AppWidgetService` or the launcher rejects a `RemoteViews` hierarchy
+  whose child comes from a different package than the widget's provider.
+- Collection widgets: their `RemoteViewsService` must belong to the widget's
+  provider package, so relayed lists will be empty. A later fix is for the host to
+  bind the service itself and repackage items as `RemoteCollectionItems` (API 31+),
+  which needs hidden API access.
+- Update storms: every inner update republishes the whole stack. Needs debouncing.
+- Fragility: this leans on unspecified behaviour and can break in a future release.
+
+If the relay works, the extra tap in section 3 disappears for everything except
+collections. If it is rejected, the bitmap mirror in section 2 remains the plan.
+
 ## 4. Where Shizuku helps
 
 Shizuku runs our code with the `shell` uid (2000). The AOSP Shell package holds
